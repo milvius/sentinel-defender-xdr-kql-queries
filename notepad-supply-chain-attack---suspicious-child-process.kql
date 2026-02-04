@@ -1,0 +1,18 @@
+// Name: Notepad++ Supply Chain Attack - Suspicious Child Process
+// Author: detections.ai
+// Date: 2026-02-04
+// Description: This rule detects the legitimate Notepad++ updater process (gup.exe) spawning a child process with a name observed during the Notepad++ supply chain attack in 2025.
+// Reference: https://securelist.com/notepad-supply-chain-attack/118708/
+// Tactic: Defense Evasion, Privilege Escalation
+// Technique: T1195.002, T1546.001
+let suspiciousChildProcesses = dynamic(["update.exe", "install.exe", "AutoUpdater.exe"]);
+DeviceProcessEvents
+| where ActionType == "ProcessCreated"
+// The parent process is the legitimate Notepad++ updater.
+| where InitiatingProcessFileName =~ "gup.exe"
+// The child process name matches those used in the supply chain attack.
+| where FileName in~ (suspiciousChildProcesses)
+// FP Tuning: Legitimate updaters may also use these generic filenames.
+// To reduce noise, consider filtering for unsigned child processes or processes executing from unusual locations (e.g., not Program Files).
+// The attackers were also observed using silent flags.
+| where ProcessCommandLine has_any ("silent", "/S")
